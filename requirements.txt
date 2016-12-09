@@ -1,0 +1,9 @@
+Package      Version 
+------------ --------
+cffi         1.9.1   
+libtcod-cffi 1.0     
+pip          9.0.1   
+pycparser    2.17    
+setuptools   30.2.0  
+tdl          1.6.0   
+wheel        0.30.0a0
