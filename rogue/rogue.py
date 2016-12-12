@@ -60,15 +60,18 @@ def render_all(console, current_map, objects):
                 wall = current_map[x][y].block_sight
                 if not visible:
                     # it's out of the player's FOV
-                    if wall:
-                        console.draw_char(x, y, None, fg=None, bg=color_dark_wall)
-                    else:
-                        console.draw_char(x, y, None, fg=None, bg=color_dark_ground)
+                    if current_map[x][y].explored:
+                        if wall:
+                            console.draw_char(x, y, None, fg=None, bg=color_dark_wall)
+                        else:
+                            console.draw_char(x, y, None, fg=None, bg=color_dark_ground)
                 else:
                     if wall:
                         console.draw_char(x, y, None, fg=None, bg=color_light_wall)
                     else:
                         console.draw_char(x, y, None, fg=None, bg=color_light_ground)
+                    # visible tiles are explored
+                    current_map[x][y].explored = True
 
     # draw all objects in the list
     for obj in objects:
