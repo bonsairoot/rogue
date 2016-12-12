@@ -1,6 +1,6 @@
 import tdl
 import colors
-from gameobject import GameObject
+from gameobject import GameObject, Fighter
 from maps import Map
 
 SCREEN_WIDTH = 80
@@ -78,16 +78,21 @@ def render_all(console, current_map, objects):
     for obj in objects:
         obj.draw(console)
 
+    # player stats
+    console.draw_str(1, SCREEN_HEIGHT -2, 'HP: ' + str(objects[0].fighter.hp) + '/' +
+                     str(objects[0].fighter.max_hp) + ' ')
+
     # blit the contents of "con" to the root console and present it
     root.blit(console, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0)
 
 
 def main():
-    tdl.set_font('resources/prestige12x12_gs_tc.png', greyscale=True, altLayout=True)
+    tdl.set_font('resources/arial10x10.png', greyscale=True, altLayout=True)
     tdl.setFPS(LIMIT_FPS)
     con = tdl.Console(SCREEN_WIDTH, SCREEN_HEIGHT)
 
-    player = GameObject(SCREEN_WIDTH//2, SCREEN_HEIGHT//2, '@', "player", colors.white, blocks=True)
+    fighter_component = Fighter(hp=30, defense=2, power=5)
+    player = GameObject(SCREEN_WIDTH//2, SCREEN_HEIGHT//2, '@', "player", colors.white, blocks=True, fighter=fighter_component)
     objects = [player]
     start_map = Map(45, 80)
     start_map.populate(objects)
@@ -110,7 +115,7 @@ def main():
         if game_state == 'playing' and player_action != 'didnt-take-turn':
             for obj in objects:
                 if obj != player:
-                    print('The ' + obj.name + ' growls!')
+                    obj.ai.take_turn(player, start_map.is_visible_tile(obj.x, obj.y), start_map, objects)
         if player_action == 'exit':
             break
 
