@@ -1,8 +1,11 @@
 from random import randint
+from gameobject import GameObject
+import colors
 
 ROOM_MAX_SIZE = 10
 ROOM_MIN_SIZE = 6
 MAX_ROOMS = 30
+MAX_ROOM_MONSTERS = 3
 
 
 class Tile:
@@ -42,6 +45,7 @@ class Map(list):
         list.__init__(self, [[Tile(True) for y in range(height)] for x in range(width)])
         self.width = width
         self.height = height
+        self.rooms = []
         self.create_standard_map()
 
     def create_room(self, room):
@@ -52,7 +56,6 @@ class Map(list):
                 self[x][y].block_sight = False
 
     def create_standard_map(self):
-        rooms = []
         num_rooms = 0
 
         for r in range(MAX_ROOMS):
@@ -68,7 +71,7 @@ class Map(list):
 
             # run through the other rooms and see if they intersect with this one
             failed = False
-            for other_room in rooms:
+            for other_room in self.rooms:
                 if new_room.intersect(other_room):
                     failed = True
                     break
@@ -92,7 +95,7 @@ class Map(list):
                     # connect it to the previous room with a tunnel
 
                     # center coordinates of previous room
-                    (prev_x, prev_y) = rooms[num_rooms-1].center()
+                    (prev_x, prev_y) = self.rooms[num_rooms-1].center()
 
                     # draw a coin (random number that is either 0 or 1)
                     if randint(0, 1):
@@ -105,7 +108,7 @@ class Map(list):
                         self.create_h_tunnel(prev_x, new_x, new_y)
 
                 # finally, append the new room to the list
-                rooms.append(new_room)
+                self.rooms.append(new_room)
                 num_rooms += 1
 
     def create_h_tunnel(self, x1, x2, y):
@@ -130,3 +133,34 @@ class Map(list):
             return False
         else:
             return True
+
+    def populate(self,objects):
+        for room in self.rooms:
+            num_monsters = randint(0, MAX_ROOM_MONSTERS)
+            for i in range(num_monsters):
+                # choose random spot for this monster
+                x = randint(room.x1+1, room.x2-1)
+                y = randint(room.y1+1, room.y2-1)
+
+                if not self.is_blocked(x, y, objects):
+                    if randint(0, 100) < 80:  #80% chance of getting an orc
+                        # create an orc
+                        monster = GameObject(x, y, 'o', "orc", colors.desaturated_green, blocks=True)
+                    else:
+                        # create a troll
+                        monster = GameObject(x, y, 'T', "troll", colors.darker_green, blocks=True)
+
+                    objects.append(monster)
+
+    def is_blocked(self, x, y, objects):
+        # first test the map tile
+        if self[x][y].blocked:
+            return True
+
+        # now check for any blocking objects
+        for obj in objects:
+            if obj.blocks and obj.x == x and obj.y == y:
+                return True
+
+        return False
+

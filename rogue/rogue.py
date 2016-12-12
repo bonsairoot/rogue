@@ -1,4 +1,5 @@
 import tdl
+import colors
 from gameobject import GameObject
 from maps import Map
 
@@ -6,16 +7,21 @@ SCREEN_WIDTH = 80
 SCREEN_HEIGHT = 50
 LIMIT_FPS = 20
 
-
 FOV_ALGO = 'BASIC'  # default FOV algorithm
 FOV_LIGHT_WALLS = True
 TORCH_RADIUS = 10
 
+COLOR_DARK_WALL = (0, 0, 100)
+COLOR_LIGHT_WALL = (130, 110, 50)
+COLOR_DARK_GROUND = (50, 50, 150)
+COLOR_LIGHT_GROUND = (200, 180, 50)
+
 root = tdl.init(SCREEN_WIDTH, SCREEN_HEIGHT, title="Roguelike", fullscreen=False)
 fov_recompute = True
+game_state = 'playing'
 
 
-def handle_keys(player, current_map):
+def handle_keys(player, current_map, objects):
     global fov_recompute
     user_input = tdl.event.key_wait()
 
@@ -23,29 +29,24 @@ def handle_keys(player, current_map):
         # Alt+Enter: toggle fullscreen
         tdl.set_fullscreen(True)
     elif user_input.key == 'ESCAPE':
-        return True  # exit game
+        return 'exit'# exit game
 
-    # movement keys
-    if user_input.key == 'UP':
-        player.move(0, -1, current_map)
-        fov_recompute = True
-    elif user_input.key == 'DOWN':
-        player.move(0, 1, current_map)
-        fov_recompute = True
-    elif user_input.key == 'LEFT':
-        player.move(-1, 0, current_map)
-        fov_recompute = True
-    elif user_input.key == 'RIGHT':
-        player.move(1, 0, current_map)
-        fov_recompute = True
+    if game_state == 'playing':
+        # movement keys
+        if user_input.key == 'UP':
+            fov_recompute = player.move_or_attack(0, -1, current_map, objects)
+        elif user_input.key == 'DOWN':
+            fov_recompute = player.move_or_attack(0, 1, current_map, objects)
+        elif user_input.key == 'LEFT':
+            fov_recompute = player.move_or_attack(-1, 0, current_map, objects)
+        elif user_input.key == 'RIGHT':
+            fov_recompute = player.move_or_attack(1, 0, current_map, objects)
+    else:
+        return 'didnt-take-turn'
 
 
 def render_all(console, current_map, objects):
     global fov_recompute
-    color_dark_wall = (0, 0, 100)
-    color_light_wall = (130, 110, 50)
-    color_dark_ground = (50, 50, 150)
-    color_light_ground = (200, 180, 50)
     if fov_recompute:
         fov_recompute = False
         visible_tiles = tdl.map.quickFOV(objects[0].x, objects[0].y,
@@ -62,20 +63,20 @@ def render_all(console, current_map, objects):
                     # it's out of the player's FOV
                     if current_map[x][y].explored:
                         if wall:
-                            console.draw_char(x, y, None, fg=None, bg=color_dark_wall)
+                            console.draw_char(x, y, None, fg=None, bg=COLOR_DARK_WALL)
                         else:
-                            console.draw_char(x, y, None, fg=None, bg=color_dark_ground)
+                            console.draw_char(x, y, None, fg=None, bg=COLOR_DARK_GROUND)
                 else:
                     if wall:
-                        console.draw_char(x, y, None, fg=None, bg=color_light_wall)
+                        console.draw_char(x, y, None, fg=None, bg=COLOR_LIGHT_WALL)
                     else:
-                        console.draw_char(x, y, None, fg=None, bg=color_light_ground)
+                        console.draw_char(x, y, None, fg=None, bg=COLOR_LIGHT_GROUND)
                     # visible tiles are explored
                     current_map[x][y].explored = True
 
     # draw all objects in the list
     for obj in objects:
-        obj.draw()
+        obj.draw(console)
 
     # blit the contents of "con" to the root console and present it
     root.blit(console, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0)
@@ -86,12 +87,13 @@ def main():
     tdl.setFPS(LIMIT_FPS)
     con = tdl.Console(SCREEN_WIDTH, SCREEN_HEIGHT)
 
-    player = GameObject(SCREEN_WIDTH//2, SCREEN_HEIGHT//2, '@', (255, 255, 255), con)
-    npc = GameObject(SCREEN_WIDTH//2 - 5, SCREEN_HEIGHT//2, '@', (255, 255, 0), con)
-    objects = [player, npc]
+    player = GameObject(SCREEN_WIDTH//2, SCREEN_HEIGHT//2, '@', "player", colors.white, blocks=True)
+    objects = [player]
     start_map = Map(45, 80)
+    start_map.populate(objects)
     player.x = start_map.spawn_x
     player.y = start_map.spawn_y
+    player_action = None
 
     while not tdl.event.is_window_closed():
         # draw all objects in the list
@@ -101,11 +103,15 @@ def main():
 
         # erase all objects at their old locations, before they move
         for object in objects:
-            object.clear()
+            object.clear(con)
 
         # handle keys and exit game if needed
-        exit_game = handle_keys(player, start_map)
-        if exit_game:
+        player_action = handle_keys(player, start_map, objects)
+        if game_state == 'playing' and player_action != 'didnt-take-turn':
+            for obj in objects:
+                if obj != player:
+                    print('The ' + obj.name + ' growls!')
+        if player_action == 'exit':
             break
 
 if __name__ == "__main__":
