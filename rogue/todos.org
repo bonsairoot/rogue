@@ -1,0 +1,28 @@
+* Refactoring
+** TODO [#B] refactor moving (params)
+** TODO [#A] move objects container to gameobjects
+
+* Development
+** TODO [#A] Improve algorithms
+*** TODO Circular FOV
+*** TODO AI (Decision trees?)
+*** TODO Dungeon generator
+** TODO [#B] Different standard map styles
+*** TODO Acid map
+*** TODO Fire map
+*** TODO Chaos map
+*** TODO Ice map
+** TODO [#C] Special maps
+*** TODO Maze map
+** TODO [#B] Items
+*** TODO Map cards
+*** TODO Stat cards
+*** TODO Talent cards
+*** TODO Crafting
+** TODO [#C] Stats
+*** TODO Talent Tree
+*** TODO Moral
+* Bugs
+** TODO Fix corpse covering mobs/items
+** TODO Fix rendering (weird chars/stats bar, no messages)
+

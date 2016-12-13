@@ -1,11 +1,18 @@
 import tdl
 import colors
-from gameobject import GameObject, Fighter
+import config
+from gameobject import GameObject, Fighter, player_death
 from maps import Map
 
 SCREEN_WIDTH = 80
 SCREEN_HEIGHT = 50
+MAP_WIDTH = 80
+MAP_HEIGHT = 43
 LIMIT_FPS = 20
+BAR_WIDTH = 20
+PANEL_HEIGHT = 7
+PANEL_Y = SCREEN_HEIGHT - PANEL_HEIGHT
+MSG_X = BAR_WIDTH + 2
 
 FOV_ALGO = 'BASIC'  # default FOV algorithm
 FOV_LIGHT_WALLS = True
@@ -17,8 +24,9 @@ COLOR_DARK_GROUND = (50, 50, 150)
 COLOR_LIGHT_GROUND = (200, 180, 50)
 
 root = tdl.init(SCREEN_WIDTH, SCREEN_HEIGHT, title="Roguelike", fullscreen=False)
+console = tdl.Console(MAP_WIDTH, MAP_HEIGHT)
+panel = tdl.Console(SCREEN_WIDTH, PANEL_HEIGHT)
 fov_recompute = True
-game_state = 'playing'
 
 
 def handle_keys(player, current_map, objects):
@@ -31,7 +39,7 @@ def handle_keys(player, current_map, objects):
     elif user_input.key == 'ESCAPE':
         return 'exit'# exit game
 
-    if game_state == 'playing':
+    if config.game_state == 'playing':
         # movement keys
         if user_input.key == 'UP':
             fov_recompute = player.move_or_attack(0, -1, current_map, objects)
@@ -44,12 +52,27 @@ def handle_keys(player, current_map, objects):
     else:
         return 'didnt-take-turn'
 
+def render_bar(x, y, total_width, name, value, maximum, bar_color, back_color):
+    #render a bar (HP, experience, etc). first calculate the width of the bar
+    bar_width = int(float(value) / maximum * total_width)
 
-def render_all(console, current_map, objects):
+    #render the background first
+    panel.draw_rect(x, y, total_width, 1, None, bg=back_color)
+
+    #now render the bar on top
+    if bar_width > 0:
+        panel.draw_rect(x, y, bar_width, 1, None, bg=bar_color)
+
+    #finally, some centered text with the values
+    text = name + ': ' + str(value) + '/' + str(maximum)
+    x_centered = x + (total_width-len(text))//2
+    panel.draw_str(x_centered, y, text, fg=colors.white, bg=None)
+
+def render_all(current_map, objects, player):
     global fov_recompute
     if fov_recompute:
         fov_recompute = False
-        visible_tiles = tdl.map.quickFOV(objects[0].x, objects[0].y,
+        visible_tiles = tdl.map.quickFOV(player.x, player.y,
                                          current_map.is_visible_tile,
                                          fov=FOV_ALGO,
                                          radius=TORCH_RADIUS,
@@ -76,25 +99,43 @@ def render_all(console, current_map, objects):
 
     # draw all objects in the list
     for obj in objects:
-        obj.draw(console)
+        if obj != player:
+            obj.draw(console)
+    player.draw(console)
 
-    # player stats
-    console.draw_str(1, SCREEN_HEIGHT -2, 'HP: ' + str(objects[0].fighter.hp) + '/' +
-                     str(objects[0].fighter.max_hp) + ' ')
+    #print the game messages, one line at a time
+    y = 1
+    for (line, color) in config.game_msgs:
+        panel.draw_str(MSG_X, y, line, bg=None, fg=color)
+        y += 1
 
-    # blit the contents of "con" to the root console and present it
-    root.blit(console, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0)
+    #prepare to render the GUI panel
+    panel.clear(fg=colors.white, bg=colors.black)
 
+    #show the player's stats
+    render_bar(1, 1, BAR_WIDTH, 'HP', player.fighter.hp, player.fighter.max_hp,
+        colors.light_red, colors.darker_red)
 
-def main():
+    #blit the contents of "panel" to the root console
+    root.blit(panel, 0, PANEL_Y, SCREEN_WIDTH, PANEL_HEIGHT, 0, 0)
+
+    root.blit(console, 0, 0, MAP_WIDTH, MAP_HEIGHT, 0, 0)
+
+def init():
     tdl.set_font('resources/arial10x10.png', greyscale=True, altLayout=True)
     tdl.setFPS(LIMIT_FPS)
-    con = tdl.Console(SCREEN_WIDTH, SCREEN_HEIGHT)
+    config.MSG_WIDTH = SCREEN_WIDTH - BAR_WIDTH - 2
+    config.MSG_HEIGHT = PANEL_HEIGHT - 1
+    #a warm welcoming message!
+    config.message('Welcome stranger! Prepare to perish in the Tombs of the Ancient Kings.', colors.red)
 
-    fighter_component = Fighter(hp=30, defense=2, power=5)
-    player = GameObject(SCREEN_WIDTH//2, SCREEN_HEIGHT//2, '@', "player", colors.white, blocks=True, fighter=fighter_component)
+def main():
+    init()
+    fighter_component = Fighter(hp=30, defense=2, power=5, death_function=player_death)
+    player = GameObject(SCREEN_WIDTH//2, SCREEN_HEIGHT//2, '@', "player", colors.white, blocks=True,
+                        fighter=fighter_component)
     objects = [player]
-    start_map = Map(45, 80)
+    start_map = Map(MAP_HEIGHT, MAP_WIDTH)
     start_map.populate(objects)
     player.x = start_map.spawn_x
     player.y = start_map.spawn_y
@@ -102,19 +143,19 @@ def main():
 
     while not tdl.event.is_window_closed():
         # draw all objects in the list
-        render_all(con, start_map, objects)
+        render_all( start_map, objects, player)
 
         tdl.flush()
 
         # erase all objects at their old locations, before they move
-        for object in objects:
-            object.clear(con)
+        for obj in objects:
+            obj.clear(console)
 
         # handle keys and exit game if needed
         player_action = handle_keys(player, start_map, objects)
-        if game_state == 'playing' and player_action != 'didnt-take-turn':
+        if config.game_state == 'playing' and player_action != 'didnt-take-turn':
             for obj in objects:
-                if obj != player:
+                if obj.ai:
                     obj.ai.take_turn(player, start_map.is_visible_tile(obj.x, obj.y), start_map, objects)
         if player_action == 'exit':
             break

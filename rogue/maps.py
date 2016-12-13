@@ -1,5 +1,5 @@
 from random import randint
-from gameobject import GameObject, Fighter, BasicMonster
+from gameobject import GameObject, Fighter, BasicMonster, monster_death
 import colors
 
 ROOM_MAX_SIZE = 10
@@ -145,16 +145,16 @@ class Map(list):
                 if not self.is_blocked(x, y, objects):
                     if randint(0, 100) < 80:  #80% chance of getting an orc
                         # create an orc
-                        fighter_component = Fighter(hp=10, defense=0, power=3)
+                        fighter_component = Fighter(hp=10, defense=0, power=3, death_function=monster_death)
                         ai_component = BasicMonster()
-                        monster = GameObject(x, y, 'o', "orc", colors.desaturated_green,
-                                             blocks=True, fighter=fighter_component, ai=ai_component)
+                        monster = GameObject(x, y, 'o', "orc", colors.desaturated_green, blocks=True,
+                                             fighter=fighter_component, ai=ai_component)
                     else:
                         # create a troll
-                        fighter_component = Fighter(hp=16, defense=1, power=4)
+                        fighter_component = Fighter(hp=16, defense=1, power=4, death_function=monster_death)
                         ai_component = BasicMonster()
-                        monster = GameObject(x, y, 'T', "troll", colors.darker_green,
-                                             blocks=True, fighter=fighter_component, ai=ai_component)
+                        monster = GameObject(x, y, 'T', "troll", colors.darker_green, blocks=True,
+                                             fighter=fighter_component, ai=ai_component)
 
                     objects.append(monster)
 

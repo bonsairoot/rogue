@@ -1,4 +1,6 @@
 import math
+import colors
+import config
 
 class GameObject:
     # this is a generic object: the player, a monster, an item, the stairs...
@@ -51,7 +53,7 @@ class GameObject:
         # try to find an attackable object there
         target = None
         for obj in objects:
-            if obj.x == x and obj.y == y:
+            if obj.fighter and obj.x == x and obj.y == y:
                 target = obj
                 break
 
@@ -72,24 +74,29 @@ class GameObject:
         con.draw_char(self.x, self.y, ' ', self.color, bg=None)
 
 class Fighter:
-    def __init__(self, hp, defense, power):
+    def __init__(self, hp, defense, power, death_function=None):
         self.max_hp = hp
         self.hp = hp
         self.defense = defense
         self.power = power
+        self.death_function = death_function
 
     def take_damage(self, damage):
         if damage > 0:
             self.hp -= damage
+        if self.hp <= 0:
+            function = self.death_function
+            if function is not None:
+                function(self.owner)
 
     def attack(self, target):
         damage = self.power - target.fighter.defense
 
         if damage > 0:
-            print(self.owner.name.capitalize() + ' attacks ' + target.name + ' for ' + str(damage) + ' hit points.')
+            config.message(self.owner.name.capitalize() + ' attacks ' + target.name + ' for ' + str(damage) + ' hit points.')
             target.fighter.take_damage(damage)
         else:
-            print(self.owner.name.capitalize() + ' attacks ' + target.name + ' but it has no effect!')
+            config.message(self.owner.name.capitalize() + ' attacks ' + target.name + ' but it has no effect!')
 
 class BasicMonster:
     # AI for a basic monster.
@@ -104,5 +111,22 @@ class BasicMonster:
             elif player.fighter.hp > 0:
                 monster.fighter.attack(player)
 
+def monster_death(monster):
+    #transform it into a nasty corpse! it doesn't block, can't be
+    #attacked and doesn't move
+    config.message(monster.name.capitalize() + ' is dead!', colors.orange)
+    monster.char = '%'
+    monster.color = colors.dark_red
+    monster.blocks = False
+    monster.fighter = None
+    monster.ai = None
+    monster.name = 'remains of ' + monster.name
 
+def player_death(player):
+    #the game ended!
+    config.message('You died!', colors.red)
+    config.game_state = 'dead'
 
+    #for added effect, transform the player into a corpse!
+    player.char = '%'
+    player.color = colors.dark_red
