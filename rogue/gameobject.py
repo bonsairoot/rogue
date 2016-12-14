@@ -65,11 +65,12 @@ class GameObject:
 
         return False
 
-    def draw(self,con):
+    def draw(self, con, visible_tiles):
         # draw the character that represents this object at its position
-        con.draw_char(self.x, self.y, self.char, self.color)
+        if (self.x, self.y) in visible_tiles:
+            con.draw_char(self.x, self.y, self.char, self.color, bg=None)
 
-    def clear(self,con):
+    def clear(self, con):
         # erase the character that represents this object
         con.draw_char(self.x, self.y, ' ', self.color, bg=None)
 
@@ -100,11 +101,11 @@ class Fighter:
 
 class BasicMonster:
     # AI for a basic monster.
-    def take_turn(self, player, visible, current_map, objects):
+    def take_turn(self, player, visible_tiles, current_map, objects):
         monster = self.owner
-        if visible:
+        if (monster.x, monster.y) in visible_tiles:
             # move towars the player
-            if monster.distance_to(player):
+            if monster.distance_to(player) >= 2:
                 monster.move_towards(player.x, player.y, current_map, objects)
 
             # in attack range

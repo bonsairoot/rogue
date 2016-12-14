@@ -1,28 +1,36 @@
+#+SEQ_TODO:  NEXT(n)  TODO(t)  WAITING(w)  SOMEDAY(s) | DONE(d) CANCELLED(d)
+
 * Refactoring
-** TODO [#B] refactor moving (params)
-** TODO [#A] move objects container to gameobjects
+** NEXT [#B] refactor moving (params)
+** NEXT [#A] move objects container to gameobjects
 
 * Development
-** TODO [#A] Improve algorithms
-*** TODO Circular FOV
-*** TODO AI (Decision trees?)
-*** TODO Dungeon generator
-** TODO [#B] Different standard map styles
-*** TODO Acid map
-*** TODO Fire map
-*** TODO Chaos map
-*** TODO Ice map
-** TODO [#C] Special maps
-*** TODO Maze map
+** NEXT [#A] Improve algorithms
+*** NEXT Circular FOV
+*** NEXT AI (Decision trees?)
+*** NEXT Dungeon generator
+** WAITING [#B] Different standard map styles
+*** WAITING Acid map
+*** WAITING Fire map
+*** WAITING Chaos map
+*** WAITING Ice map
+** WAITING [#B] Graphics
+*** WAITING Choose tileset
+*** SOMEDAY Learn Pixelart
+*** SOMEDAY Animations
+** WAITING [#C] Sound
+** WAITING [#C] Special maps
+*** WAITING Maze map
 ** TODO [#B] Items
 *** TODO Map cards
 *** TODO Stat cards
 *** TODO Talent cards
-*** TODO Crafting
+*** SOMEDAY Crafting
 ** TODO [#C] Stats
 *** TODO Talent Tree
-*** TODO Moral
+*** SOMEDAY Moral
 * Bugs
-** TODO Fix corpse covering mobs/items
-** TODO Fix rendering (weird chars/stats bar, no messages)
+** NEXT <#1> Fix corpse covering mobs/items
+** DONE <#2> Fix rendering (weird chars/stats bar, no messages)
+   CLOSED: [2016-12-14 Mit 20:22]
 

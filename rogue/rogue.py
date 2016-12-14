@@ -6,8 +6,10 @@ from maps import Map
 
 SCREEN_WIDTH = 80
 SCREEN_HEIGHT = 50
+
 MAP_WIDTH = 80
 MAP_HEIGHT = 43
+
 LIMIT_FPS = 20
 BAR_WIDTH = 20
 PANEL_HEIGHT = 7
@@ -23,15 +25,28 @@ COLOR_LIGHT_WALL = (130, 110, 50)
 COLOR_DARK_GROUND = (50, 50, 150)
 COLOR_LIGHT_GROUND = (200, 180, 50)
 
+tdl.set_font('resources/arial10x10.png', greyscale=True, altLayout=True)
 root = tdl.init(SCREEN_WIDTH, SCREEN_HEIGHT, title="Roguelike", fullscreen=False)
+tdl.setFPS(LIMIT_FPS)
 console = tdl.Console(MAP_WIDTH, MAP_HEIGHT)
 panel = tdl.Console(SCREEN_WIDTH, PANEL_HEIGHT)
 fov_recompute = True
-
+mouse_coord = (0,0)
 
 def handle_keys(player, current_map, objects):
     global fov_recompute
-    user_input = tdl.event.key_wait()
+    global mouse_coord
+
+    keypress = False
+    for event in tdl.event.get():
+        if event.type == 'KEYDOWN':
+            user_input = event
+            keypress = True
+        if event.type == 'MOUSEMOTION':
+            mouse_coord = event.cell
+
+    if not keypress:
+        return 'didnt-take-turn'
 
     if user_input.key == 'ENTER' and user_input.alt:
         # Alt+Enter: toggle fullscreen
@@ -69,6 +84,7 @@ def render_bar(x, y, total_width, name, value, maximum, bar_color, back_color):
     panel.draw_str(x_centered, y, text, fg=colors.white, bg=None)
 
 def render_all(current_map, objects, player):
+    global visible_tiles
     global fov_recompute
     if fov_recompute:
         fov_recompute = False
@@ -100,8 +116,13 @@ def render_all(current_map, objects, player):
     # draw all objects in the list
     for obj in objects:
         if obj != player:
-            obj.draw(console)
-    player.draw(console)
+            obj.draw(console, visible_tiles)
+    player.draw(console, visible_tiles)
+    root.blit(console, 0, 0, MAP_WIDTH, MAP_HEIGHT, 0, 0)
+
+
+    #prepare to render the GUI panel
+    panel.clear(fg=colors.white, bg=colors.black)
 
     #print the game messages, one line at a time
     y = 1
@@ -109,21 +130,29 @@ def render_all(current_map, objects, player):
         panel.draw_str(MSG_X, y, line, bg=None, fg=color)
         y += 1
 
-    #prepare to render the GUI panel
-    panel.clear(fg=colors.white, bg=colors.black)
-
     #show the player's stats
     render_bar(1, 1, BAR_WIDTH, 'HP', player.fighter.hp, player.fighter.max_hp,
         colors.light_red, colors.darker_red)
 
+    # display names of objects under the mouse
+    panel.draw_str(1, 0, get_names_under_mouse(objects), bg=None, fg=colors.light_gray)
+
     #blit the contents of "panel" to the root console
     root.blit(panel, 0, PANEL_Y, SCREEN_WIDTH, PANEL_HEIGHT, 0, 0)
 
-    root.blit(console, 0, 0, MAP_WIDTH, MAP_HEIGHT, 0, 0)
+def get_names_under_mouse(objects):
+
+    #return a string with the names of all objects under the mouse
+    (x, y) = mouse_coord
+
+    #create a list with the names of all objects at the mouse's coordinates and in FOV
+    names = [obj.name for obj in objects
+        if obj.x == x and obj.y == y and (obj.x, obj.y) in visible_tiles]
+
+    names = ', '.join(names)  #join the names, separated by commas
+    return names.capitalize()
 
 def init():
-    tdl.set_font('resources/arial10x10.png', greyscale=True, altLayout=True)
-    tdl.setFPS(LIMIT_FPS)
     config.MSG_WIDTH = SCREEN_WIDTH - BAR_WIDTH - 2
     config.MSG_HEIGHT = PANEL_HEIGHT - 1
     #a warm welcoming message!
@@ -143,7 +172,7 @@ def main():
 
     while not tdl.event.is_window_closed():
         # draw all objects in the list
-        render_all( start_map, objects, player)
+        render_all(start_map, objects, player)
 
         tdl.flush()
 
@@ -156,7 +185,7 @@ def main():
         if config.game_state == 'playing' and player_action != 'didnt-take-turn':
             for obj in objects:
                 if obj.ai:
-                    obj.ai.take_turn(player, start_map.is_visible_tile(obj.x, obj.y), start_map, objects)
+                    obj.ai.take_turn(player, visible_tiles, start_map, objects)
         if player_action == 'exit':
             break
 
