@@ -1,11 +1,12 @@
 from random import randint
-from gameobject import GameObject, Fighter, BasicMonster, monster_death
+from gameobject import GameObject, Fighter, BasicMonster, monster_death, Item
 import colors
 
 ROOM_MAX_SIZE = 10
 ROOM_MIN_SIZE = 6
 MAX_ROOMS = 30
 MAX_ROOM_MONSTERS = 3
+MAX_ROOM_ITEMS = 2
 
 
 class Tile:
@@ -134,7 +135,7 @@ class Map(list):
         else:
             return True
 
-    def populate(self,objects):
+    def populate(self, objects):
         for room in self.rooms:
             num_monsters = randint(0, MAX_ROOM_MONSTERS)
             for i in range(num_monsters):
@@ -143,7 +144,7 @@ class Map(list):
                 y = randint(room.y1+1, room.y2-1)
 
                 if not self.is_blocked(x, y, objects):
-                    if randint(0, 100) < 80:  #80% chance of getting an orc
+                    if randint(0, 100) < 80:  # 80% chance of getting an orc
                         # create an orc
                         fighter_component = Fighter(hp=10, defense=0, power=3,
                                                     death_function=monster_death)
@@ -160,6 +161,19 @@ class Map(list):
 
                     objects.append(monster)
 
+            num_items = randint(0, MAX_ROOM_ITEMS)
+            for i in range(num_items):
+                # choose a random spot for this items
+                x = randint(room.x1+1, room.x2-1)
+                y = randint(room.y1+1, room.y2-1)
+
+                if not self.is_blocked(x, y, objects):
+                    item_component = Item()
+                    item = GameObject(x, y, '!', 'healing potion', colors.violet, item=item_component)
+
+                    objects.append(item)
+                    item.send_to_back()
+
     def is_blocked(self, x, y, objects):
         # first test the map tile
         if self[x][y].blocked:
@@ -171,4 +185,3 @@ class Map(list):
                 return True
 
         return False
-

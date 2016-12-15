@@ -1,11 +1,16 @@
 import math
 import colors
 import config
+from config import message
+
+objects = []
+inventory = []
+
 
 class GameObject:
     # this is a generic object: the player, a monster, an item, the stairs...
     # it's always represented by a character on screen.
-    def __init__(self, x, y, char, name, color, blocks=False, fighter=None, ai=None):
+    def __init__(self, x, y, char, name, color, blocks=False, fighter=None, ai=None, item=None):
         self.x = x
         self.y = y
         self.char = char
@@ -18,8 +23,11 @@ class GameObject:
         self.ai = ai
         if self.ai:
             self.ai.owner = self
+        self.item = item
+        if self.item:
+            self.item.owner = self
 
-    def move(self, dx, dy, current_map, objects):
+    def move(self, dx, dy, current_map):
         # move by the given amount
         if (not current_map.is_blocked(self.x + dx, self.y + dy, objects)):
             self.x += dx
@@ -28,7 +36,7 @@ class GameObject:
 
         return False
 
-    def move_towards(self, target_x, target_y, current_map, objects):
+    def move_towards(self, target_x, target_y, current_map):
         dx = target_x - self.x
         dy = target_y - self.y
         distance = math.sqrt(dx ** 2 + dy ** 2)
@@ -38,14 +46,14 @@ class GameObject:
 
         dx = int(round(dx / distance))
         dy = int(round(dy / distance))
-        self.move(dx, dy, current_map, objects)
+        self.move(dx, dy, current_map)
 
     def distance_to(self, other):
-        dx = other.x -self.x
+        dx = other.x - self.x
         dy = other.y - self.y
         return math.sqrt(dx ** 2 + dy ** 2)
 
-    def move_or_attack(self, dx, dy, current_map, objects):
+    def move_or_attack(self, dx, dy, current_map):
         # the coordinates the player is moving to/attacking
         x = self.x + dx
         y = self.y + dy
@@ -61,7 +69,7 @@ class GameObject:
         if target is not None:
             self.fighter.attack(target)
         else:
-            return self.move(dx, dy, current_map, objects)
+            return self.move(dx, dy, current_map)
 
         return False
 
@@ -73,6 +81,12 @@ class GameObject:
     def clear(self, con):
         # erase the character that represents this object
         con.draw_char(self.x, self.y, ' ', self.color, bg=None)
+
+    def send_to_back(self):
+        global objects
+        objects.remove(self)
+        objects.insert(0, self)
+
 
 class Fighter:
     def __init__(self, hp, defense, power, death_function=None):
@@ -94,28 +108,32 @@ class Fighter:
         damage = self.power - target.fighter.defense
 
         if damage > 0:
-            config.message(self.owner.name.capitalize() + ' attacks ' + target.name + ' for ' + str(damage) + ' hit points.')
+            message(self.owner.name.capitalize() + ' attacks ' +
+                    target.name + ' for ' + str(damage) + ' hit points.')
             target.fighter.take_damage(damage)
         else:
-            config.message(self.owner.name.capitalize() + ' attacks ' + target.name + ' but it has no effect!')
+            message(self.owner.name.capitalize() + ' attacks ' +
+                    target.name + ' but it has no effect!')
+
 
 class BasicMonster:
     # AI for a basic monster.
-    def take_turn(self, player, visible_tiles, current_map, objects):
+    def take_turn(self, player, visible_tiles, current_map):
         monster = self.owner
         if (monster.x, monster.y) in visible_tiles:
             # move towars the player
             if monster.distance_to(player) >= 2:
-                monster.move_towards(player.x, player.y, current_map, objects)
+                monster.move_towards(player.x, player.y, current_map)
 
             # in attack range
             elif player.fighter.hp > 0:
                 monster.fighter.attack(player)
 
+
 def monster_death(monster):
-    #transform it into a nasty corpse! it doesn't block, can't be
-    #attacked and doesn't move
-    config.message(monster.name.capitalize() + ' is dead!', colors.orange)
+    # transform it into a nasty corpse! it doesn't block, can't be
+    # attacked and doesn't move
+    message(monster.name.capitalize() + ' is dead!', colors.orange)
     monster.char = '%'
     monster.color = colors.dark_red
     monster.blocks = False
@@ -123,11 +141,24 @@ def monster_death(monster):
     monster.ai = None
     monster.name = 'remains of ' + monster.name
 
+
 def player_death(player):
-    #the game ended!
-    config.message('You died!', colors.red)
+    # the game ended!
+    message('You died!', colors.red)
     config.game_state = 'dead'
 
-    #for added effect, transform the player into a corpse!
+    # for added effect, transform the player into a corpse!
     player.char = '%'
     player.color = colors.dark_red
+
+
+class Item:
+    # an item that can be picked up and used
+    def pick_up(self):
+        # add to the inventory and remove from the map
+        if len(inventory) > 25:
+            message('Your inventory is full, cannot pick up ' + self.owner.name + '.', colors.red)
+        else:
+            inventory.append(self.owner)
+            objects.remove(self.owner)
+            message('You picked up a ' + self.owner.name + '!', colors.green)

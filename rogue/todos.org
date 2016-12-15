@@ -1,9 +1,10 @@
 #+SEQ_TODO:  NEXT(n)  TODO(t)  WAITING(w)  SOMEDAY(s) | DONE(d) CANCELLED(d)
 
 * Refactoring
-** NEXT [#B] refactor moving (params)
-** NEXT [#A] move objects container to gameobjects
-
+** DONE [#B] refactor moving (params)
+   CLOSED: [2016-12-15 Don 21:24]
+** DONE [#A] move objects container to gameobjects
+** TODO refactor importsCLOSED: [2016-12-15 Don 21:2
 * Development
 ** NEXT [#A] Improve algorithms
 *** NEXT Circular FOV
@@ -30,7 +31,8 @@
 *** TODO Talent Tree
 *** SOMEDAY Moral
 * Bugs
-** NEXT <#1> Fix corpse covering mobs/items
+** DONE <#1> Fix corpse covering mobs/items
+   CLOSED: [2016-12-15 Don 21:28]
 ** DONE <#2> Fix rendering (weird chars/stats bar, no messages)
    CLOSED: [2016-12-14 Mit 20:22]
 
