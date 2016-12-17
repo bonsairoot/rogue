@@ -3,8 +3,24 @@ import colors
 import config
 from config import message
 
+
 objects = []
 inventory = []
+
+
+def init(player_spawn_x, player_spawn_y):
+    global objects
+    fighter_component = Fighter(hp=30, defense=2, power=5,
+                                           death_function=player_death)
+    player = GameObject(player_spawn_x, player_spawn_y, '@', "player",
+                                   colors.white, blocks=True, fighter=fighter_component)
+    objects = ObjectList(player)
+
+
+class ObjectList(list):
+    def __init__(self,player):
+        list.__init__(self,[player])
+        self.player = player
 
 
 class GameObject:
@@ -115,19 +131,23 @@ class Fighter:
             message(self.owner.name.capitalize() + ' attacks ' +
                     target.name + ' but it has no effect!')
 
+    def heal(self, amount):
+        self.hp += amount
+        if self.hp > self.max_hp:
+            self.hp = self.max_hp
 
 class BasicMonster:
     # AI for a basic monster.
-    def take_turn(self, player, visible_tiles, current_map):
+    def take_turn(self, visible_tiles, current_map):
         monster = self.owner
         if (monster.x, monster.y) in visible_tiles:
             # move towars the player
-            if monster.distance_to(player) >= 2:
-                monster.move_towards(player.x, player.y, current_map)
+            if monster.distance_to(objects.player) >= 2:
+                monster.move_towards(objects.player.x, objects.player.y, current_map)
 
             # in attack range
-            elif player.fighter.hp > 0:
-                monster.fighter.attack(player)
+            elif objects.player.fighter.hp > 0:
+                monster.fighter.attack(objects.player)
 
 
 def monster_death(monster):
@@ -140,6 +160,7 @@ def monster_death(monster):
     monster.fighter = None
     monster.ai = None
     monster.name = 'remains of ' + monster.name
+    monster.send_to_back()
 
 
 def player_death(player):
@@ -153,6 +174,9 @@ def player_death(player):
 
 
 class Item:
+    def __init__(self, use_function=None):
+        self.use_function = use_function
+
     # an item that can be picked up and used
     def pick_up(self):
         # add to the inventory and remove from the map
@@ -162,3 +186,19 @@ class Item:
             inventory.append(self.owner)
             objects.remove(self.owner)
             message('You picked up a ' + self.owner.name + '!', colors.green)
+
+    def use(self):
+        if self.use_function is None:
+            message('The ' + self.owner.name + ' cannot be used.')
+        else:
+            if self.use_function() != 'cancelled':
+                inventory.remove(self.owner)  # destroy after use, unless it was cancelled
+
+
+def cast_heal():
+    if objects.player.fighter.hp == objects.player.fighter.max_hp:
+        message('You are already at full health.', colors.red)
+        return 'cancelled'
+
+    message('Your wounds start to feel better!', colors.light_violet)
+    objects.player.fighter.heal(4)

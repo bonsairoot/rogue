@@ -4,7 +4,9 @@
 ** DONE [#B] refactor moving (params)
    CLOSED: [2016-12-15 Don 21:24]
 ** DONE [#A] move objects container to gameobjects
-** TODO refactor importsCLOSED: [2016-12-15 Don 21:2
+   CLOSED: [2016-12-17 Sam 00:49]
+** DONE refactor imports
+   CLOSED: [2016-12-17 Sam 00:49]
 * Development
 ** NEXT [#A] Improve algorithms
 *** NEXT Circular FOV

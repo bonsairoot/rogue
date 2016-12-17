@@ -1,5 +1,5 @@
 from random import randint
-from gameobject import GameObject, Fighter, BasicMonster, monster_death, Item
+from gameobject import GameObject, Fighter, BasicMonster, monster_death, Item, cast_heal
 import colors
 
 ROOM_MAX_SIZE = 10
@@ -168,7 +168,7 @@ class Map(list):
                 y = randint(room.y1+1, room.y2-1)
 
                 if not self.is_blocked(x, y, objects):
-                    item_component = Item()
+                    item_component = Item(use_function=cast_heal)
                     item = GameObject(x, y, '!', 'healing potion', colors.violet, item=item_component)
 
                     objects.append(item)

@@ -38,7 +38,7 @@ fov_recompute = True
 mouse_coord = (0, 0)
 
 
-def handle_keys(player, current_map, objects):
+def handle_keys(current_map, objects):
     global fov_recompute
     global mouse_coord
 
@@ -62,22 +62,25 @@ def handle_keys(player, current_map, objects):
     if config.game_state == 'playing':
         # movement keys
         if user_input.key == 'UP':
-            fov_recompute = player.move_or_attack(0, -1, current_map)
+            fov_recompute = objects.player.move_or_attack(0, -1, current_map)
         elif user_input.key == 'DOWN':
-            fov_recompute = player.move_or_attack(0, 1, current_map)
+            fov_recompute = objects.player.move_or_attack(0, 1, current_map)
         elif user_input.key == 'LEFT':
-            fov_recompute = player.move_or_attack(-1, 0, current_map)
+            fov_recompute = objects.player.move_or_attack(-1, 0, current_map)
         elif user_input.key == 'RIGHT':
-            fov_recompute = player.move_or_attack(1, 0, current_map)
+            fov_recompute = objects.player.move_or_attack(1, 0, current_map)
         else:
             # test for other keys
             if user_input.char == 'g':
                 for obj in objects:
-                    if obj.x == player.x and obj.y == player.y and obj.item:
+                    if obj.x == objects.player.x and obj.y == objects.player.y and obj.item:
                         obj.item.pick_up()
                         break
             if user_input.char == 'i':
-                inventory_menu('Press the key next to an item to use it or any other to cancel.\n')
+                    #show the inventory; if an item is selected, use it
+                    chosen_item = inventory_menu('Press the key next to an item to use it, or any other to cancel.\n')
+                    if chosen_item is not None:
+                        chosen_item.use()
 
             return 'didnt-take-turn'
 
@@ -135,6 +138,11 @@ def menu(header, options, width):
     if key_char == '':  # arrow returns empty string
         key_char = ' '
 
+    #convert the ASCII code to an index; if it corresponds to an option, return it
+    index = ord(key_char) - ord('a')
+    if index >= 0 and index < len(options):
+        return index
+    return None
 
 def inventory_menu(header):
     # show a menu with each item of the inventory as an option
@@ -144,14 +152,17 @@ def inventory_menu(header):
         options = [item.name for item in gameobject.inventory]
 
     index = menu(header, options, INVENTORY_WIDTH)
+    #if an item was chosen, return it
+    if index is None or len(gameobject.inventory) == 0:
+        return None
+    return gameobject.inventory[index].item
 
-
-def render_all(current_map, objects, player):
+def render_all(current_map, objects):
     global visible_tiles
     global fov_recompute
     if fov_recompute:
         fov_recompute = False
-        visible_tiles = tdl.map.quickFOV(player.x, player.y,
+        visible_tiles = tdl.map.quickFOV(objects.player.x, objects.player.y,
                                          current_map.is_visible_tile,
                                          fov=FOV_ALGO,
                                          radius=TORCH_RADIUS,
@@ -178,9 +189,9 @@ def render_all(current_map, objects, player):
 
     # draw all objects in the list
     for obj in objects:
-        if obj != player:
+        if obj != objects.player:
             obj.draw(console, visible_tiles)
-    player.draw(console, visible_tiles)
+    objects.player.draw(console, visible_tiles)
     root.blit(console, 0, 0, MAP_WIDTH, MAP_HEIGHT, 0, 0)
 
     # prepare to render the GUI panel
@@ -193,7 +204,7 @@ def render_all(current_map, objects, player):
         y += 1
 
     # show the player's stats
-    render_bar(1, 1, BAR_WIDTH, 'HP', player.fighter.hp, player.fighter.max_hp,
+    render_bar(1, 1, BAR_WIDTH, 'HP', objects.player.fighter.hp, objects.player.fighter.max_hp,
                colors.light_red, colors.darker_red)
 
     # display names of objects under the mouse
@@ -226,21 +237,15 @@ def init():
 
 def main():
     init()
-    fighter_component = gameobject.Fighter(hp=30, defense=2, power=5,
-                                           death_function=gameobject.player_death)
-    player = gameobject.GameObject(SCREEN_WIDTH//2, SCREEN_HEIGHT//2, '@', "player",
-                                   colors.white, blocks=True, fighter=fighter_component)
-    objects = gameobject.objects
-    objects.append(player)
     start_map = Map(MAP_HEIGHT, MAP_WIDTH)
+    gameobject.init(start_map.spawn_x, start_map.spawn_y)
+    objects = gameobject.objects
     start_map.populate(objects)
-    player.x = start_map.spawn_x
-    player.y = start_map.spawn_y
     player_action = None
 
     while not tdl.event.is_window_closed():
         # draw all objects in the list
-        render_all(start_map, objects, player)
+        render_all(start_map, objects)
 
         tdl.flush()
 
@@ -249,11 +254,11 @@ def main():
             obj.clear(console)
 
         # handle keys and exit game if needed
-        player_action = handle_keys(player, start_map, objects)
+        player_action = handle_keys(start_map, objects)
         if config.game_state == 'playing' and player_action != 'didnt-take-turn':
             for obj in objects:
                 if obj.ai:
-                    obj.ai.take_turn(player, visible_tiles, start_map)
+                    obj.ai.take_turn(visible_tiles, start_map)
         if player_action == 'exit':
             break
 
